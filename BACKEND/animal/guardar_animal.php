@@ -75,7 +75,6 @@ if ($result && $result->num_rows > 0) {
             gasto_mantenimiento,
             id_finca,
             estado_sincronizacion,
-            creado_fecha,
             actualizado_fecha,
             eliminado,
             fecha_compra
@@ -83,7 +82,7 @@ if ($result && $result->num_rows > 0) {
                   '$tipo',
                   '$raza', 
                   $edad,
-                  $peso, '$sexo', '$proposito', '$estado_reproductivo', $precio_kilo, '$estado', $precio_compra,NOW(),$gasto_mantenimiento, $id_finca,0,NOW(),NOW(),0,NOW())";
+                  $peso, '$sexo', '$proposito', '$estado_reproductivo', $precio_kilo, '$estado', $precio_compra,NOW(),$gasto_mantenimiento, $id_finca,1,NOW(),0,NOW())";
 
     $accion = "creado";
 }

@@ -20,7 +20,7 @@ class GraficaGanancias extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Top Ganancias por ID", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text("Top de Ganancias por Identificador", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 20),
           Expanded(
             child: BarChart(

@@ -3,11 +3,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:trabajo_final/menu.dart';
-import 'package:trabajo_final/manejo_sesion.dart';
-import 'package:trabajo_final/base_datos/base_de_datos.dart';
-import 'package:trabajo_final/componentes/barra_estado_sincronizacion.dart';
-import 'package:trabajo_final/componentes/estado_sincronizacion.dart';
+import 'package:agrocauca/menu.dart';
+import 'package:agrocauca/manejo_sesion.dart';
+import 'package:agrocauca/base_datos/base_de_datos.dart';
+import 'package:agrocauca/componentes/barra_estado_sincronizacion.dart';
+import 'package:agrocauca/componentes/estado_sincronizacion.dart';
 
 class Inicio_sesion extends StatefulWidget {
 
@@ -31,11 +31,34 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
   @override 
   void initState(){
     super.initState();
-    
+    verificarSesion();
 
   }
 
+  Future<void> verificarSesion() async {
+    print("inicio verificacion");
+    bool sesionValida = await SessionManager.esSesionValida();
 
+      if (sesionValida) {
+
+      int? usuario = await SessionManager.getUsuarioId();
+        String? nombre = await SessionManager.getUsuarioNombre();
+        String? correo = await SessionManager.getUsuarioCorreo();
+        int? idEmpresa = await SessionManager.getEmpresa();
+        String? nombreEmpresa = await SessionManager.getNombreEmpresa();
+    
+      if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => Menu(usuario: usuario!, nombre: nombre!, correo: correo!, idEmpresa: idEmpresa!, nombreEmpresa: nombreEmpresa!),
+          ),
+        );
+
+    
+    }
+  }
 
   Future<void> _iniciarSesionClick() async {
 
@@ -45,7 +68,7 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
     }
 
 
-    if (EstadoSincronizacion().estado.value == SyncStatus.sinConexion) {
+    if (EstadoSincronizacion().estado.value == SincronizacionEstado.sinConexion) {
       print("sin conexion");
       await _inicioSesionLocal();
     } else {
@@ -64,12 +87,27 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
     print(usuario);
     print("sigue offline");
     if (usuario != null) {
+      await SessionManager.guardarSesion(
+
+        "offline", // token falso local
+
+        int.parse(usuario["id_usuario"].toString()),
+
+        usuario["nombre"],
+
+        usuario["correo"],
+        int.parse(usuario["id_empresa"].toString()),
+        usuario["nombre_empresa"].toString()
+      );
 
       print("vamos al menu");
       _navegarInicio(
         usuario['nombre'],
         usuario['correo'],
-        usuario['id'],);
+        usuario['id_usuario'],
+        int.parse(usuario['id_empresa'].toString()),
+        usuario['nombre_empresa'].toString()
+      );
     } else {
       mostrarMensaje(context, "Error", "Usuario no encontrado en modo offline", exito: false);
     }
@@ -77,7 +115,7 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
 
  
   Future<void> _inicioSesionOnline() async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/inicio_sesion.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/inicio_sesion.php");
     
     final response = await http.post(
       url,
@@ -87,30 +125,45 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
         "clave": _txt_clave.text
       }),
     );
-
+    print(response.body);
     print("intentando iniciar sesión online...");
     final data = jsonDecode(response.body);
 
     if (data["success"]) {
+      
+      await SessionManager.guardarSesion(
+        data["token"],
+        int.parse(data['usuario'].toString()),
+        data['nombre'].toString(),
+        data['correo'].toString(),
+        int.parse(data['id_empresa'].toString()),
+        data['nombre_empresa'].toString()
+      );
+      bool vacia= ! await BaseDeDatos.baseDatosVacia();
+      if(!vacia){
+        _cargarDatosOffline( data["usuario"], data["id_empresa"]); // Carga datos offline al iniciar sesión por primera vez en un dispositivo nuevo
 
-      //_cargarDatosOffline( data["usuario"]); // Carga datos offline al iniciar sesión 
-      _navegarInicio(data["nombre"], data["correo"], data["usuario"]);
+      }
+      
+      _navegarInicio(data["nombre"], data["correo"], data["usuario"], int.parse(data['id_empresa'].toString()), data['nombre_empresa'].toString());
     } else {
       mostrarMensaje(context, "Error", data["message"], exito: false);
     }
   }
-  Future <void> _cargarDatosOffline( int usuario) async {
+
+  Future <void> _cargarDatosOffline( int usuario, int id_empresa) async {
     print("cargando datos offline para usuario $usuario");
-    final url = (Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/obtener_todo.php"));
+    final url = (Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/obtener_todo.php"));
   
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "id_usuario": usuario,
+        "id_empresa": id_empresa
       }),
     );
-
+    print(response.body);
     final data = jsonDecode(response.body);
 
     if (data["success"]) {
@@ -122,7 +175,7 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
     }
   }
 
-  void _navegarInicio(String nombre,String correo, int usuario) async {
+  void _navegarInicio(String nombre,String correo, int usuario, int idEmpresa, String nombreEmpresa) async {
     Navigator.push(
       context, 
       MaterialPageRoute(
@@ -130,6 +183,8 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
           nombre: nombre,
           correo: correo,
           usuario: usuario,
+          idEmpresa: idEmpresa,
+          nombreEmpresa: nombreEmpresa,
         ),
       ),
     );

@@ -3,12 +3,14 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/animal/eliminar_animal.php</file>
-            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/animal/modificar_animal.php</file>
-            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/finca/eliminar_finca.php</file>
+            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/finca/listar_fincas.php</file>
+            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/reportes/reporte.php</file>
+            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/animal/guardar_animal.php</file>
             <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/finca/guardar_finca.php</file>
-            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/conexion.php</file>
-            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/animal/ingresar_animal.php</file>
+            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/obtener_todo.php</file>
+            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/config/conexion.php</file>
+            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/inicio_sesion.php</file>
+            <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/sincronizacion/sincronizacion.php</file>
             <file>file:/C:/xampp/htdocs/AgroCauca/BACKEND/animal/listar_animales.php</file>
         </group>
     </open-files>

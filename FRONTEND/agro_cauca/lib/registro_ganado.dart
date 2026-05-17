@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:sqflite/sql.dart';
-import 'package:trabajo_final/componentes/Funciones.dart';
-import 'package:trabajo_final/componentes/texto.dart';
-import 'package:trabajo_final/componentes/desplegable.dart';
-import 'package:trabajo_final/componentes/estado_sincronizacion.dart';
-import 'package:trabajo_final/base_datos/base_de_datos.dart';
+import 'package:agrocauca/componentes/Funciones.dart';
+import 'package:agrocauca/componentes/texto.dart';
+import 'package:agrocauca/componentes/desplegable.dart';
+import 'package:agrocauca/componentes/estado_sincronizacion.dart';
+import 'package:agrocauca/base_datos/base_de_datos.dart';
 
 class RegistroGanado extends StatefulWidget {
   final int usuario;
-  const RegistroGanado({Key? key, required this.usuario}) : super(key: key);
+  final int idEmpresa;
+  const RegistroGanado({Key? key, required this.usuario, required this.idEmpresa}) : super(key: key);
 
   @override
   _RegistroGanadoState createState() => _RegistroGanadoState();
@@ -25,9 +26,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   final TextEditingController _precioCompra = TextEditingController();
   final TextEditingController _precioKilo = TextEditingController();
   final TextEditingController _gastoMantenimiento = TextEditingController();
-  final ScrollController _horizontalController = ScrollController();
-  final ScrollController _verticalController = ScrollController();
-
+  final TextEditingController _buscador = TextEditingController();
   // Dropdowns
   String? _sexo_registrar;
   String? _proposito_registrar;
@@ -36,21 +35,25 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   String? _finca_registrar;
   String? _tipo_registrar;
 
+  List animalesFiltrados = [];
   List animales = [];
   List fincas = [];
   bool cargando = true;
-
+  String especieSeleccionada = "";
   @override
   void initState() {
     super.initState();
-    if(EstadoSincronizacion().estado.value==SyncStatus.sinConexion){
-      obtenerAnimalesOffline();
-      obtenerFincasOffline();
-    }
-    else{
-      obtenerAnimalesOnline();
-      obtenerFincasOnline();
-    }
+    setState(() {
+      if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
+        obtenerAnimalesOffline();
+        obtenerFincasOffline();
+      }
+      else{
+        obtenerAnimalesOnline();
+        obtenerFincasOnline();
+      }
+    });
+   
   
     
   }
@@ -59,8 +62,8 @@ class _RegistroGanadoState extends State<RegistroGanado> {
     print("📱 Cargando fincas OFFLINE");
 
     try {
-      final data = await BaseDeDatos.obtenerFincas(widget.usuario);
-
+      final data = await BaseDeDatos.obtenerFincas(widget.idEmpresa);
+      print(data);
       setState(() {
         fincas = data;
         cargando = false;
@@ -69,9 +72,6 @@ class _RegistroGanadoState extends State<RegistroGanado> {
     } catch (e) {
       print("❌ Error obteniendo fincas offline: $e");
 
-      setState(() {
-        cargando = false;
-      });
     }
   }
 
@@ -79,48 +79,46 @@ class _RegistroGanadoState extends State<RegistroGanado> {
     print("📱 Cargando animales OFFLINE");
 
     try {
-      final data = await BaseDeDatos.obtenerAnimales(widget.usuario);
-
+      final data = await BaseDeDatos.obtenerAnimales(widget.idEmpresa);
+      
       setState(() {
         animales = data;
+        animalesFiltrados = animales;
         cargando = false;
       });
 
     } catch (e) {
       print("❌ Error obteniendo animales offline: $e");
-
-      setState(() {
-        cargando = false;
-      });
     }
   }
 
   Future<void> obtenerAnimalesOnline() async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/animal/listar_animales.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/listar_animales.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"usuario": widget.usuario}),
+      body: jsonEncode({"id_empresa": widget.idEmpresa}),
     );
     print(response.body);
     final data = jsonDecode(response.body);
     if (data["success"]) {
       setState(() {
         animales = data["data"];
+        animalesFiltrados = animales;
         cargando = false;
       });
     }
   }
 
   Future<void> insertarAnimalOnline() async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/animal/guardar_animal.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/guardar_animal.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "identificador": _identificacion.text,
+        "identificador": (_identificacion.text).toString().trim().toUpperCase(),
         "tipo": _tipo_registrar,
-        "raza": _raza.text,
+        "raza":   (_raza.text).toString().trim().toLowerCase(),
         "edad": _edad.text,
         "peso": _peso.text,
         "sexo": _sexo_registrar,
@@ -146,7 +144,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
 
   void btningresaranimal(){
     
-    if(EstadoSincronizacion().estado.value==SyncStatus.sinConexion){
+    if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
       insertarAnimalOflline();
     }
     else{
@@ -159,9 +157,9 @@ class _RegistroGanadoState extends State<RegistroGanado> {
 
     try {
       await BaseDeDatos.ingresarAnimal({
-        "identificador": _identificacion.text,
+        "identificador": (_identificacion.text).toString().trim().toUpperCase(),
         "tipo": _tipo_registrar,
-        "raza": _raza.text,
+        "raza":   (_raza.text).toString().trim().toLowerCase(),
         "edad": int.tryParse(_edad.text) ?? 0,
         "peso": double.tryParse(_peso.text) ?? 0.0,
         "sexo": _sexo_registrar,
@@ -176,22 +174,66 @@ class _RegistroGanadoState extends State<RegistroGanado> {
       });
 
       Funciones.mostrarMensaje(context, "Animal registrada", "El animal ha sido registrada exitosamente.", onAceptar: obtenerAnimalesOffline);
+
     } catch (e) {
       Funciones.mostrarMensaje(context, "Error", "Error al guardar el animal localmente: $e"); 
+
     }
 
   }
 
-  Future<void> actualizarAnimal(int id_animal) async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/animal/guardar_animal.php");
+  Future<void> actualizarAnimalOflline(int id_animal) async {
+     try {
+      await BaseDeDatos.actualizarAnimal({
+       "id_animal": id_animal,
+        "identificador": (_identificacion.text).toString().trim().toUpperCase(),
+        "tipo": _tipo_registrar,
+        "raza":   (_raza.text).toString().trim().toLowerCase(),
+        "edad": _edad.text,
+        "peso": _peso.text,
+        "sexo": _sexo_registrar,
+        "proposito": _proposito_registrar,
+        "estado_reproductivo": _estado_reproductivo_registrar,
+        "precio_kilo": _precioKilo.text,
+        "estado": _estado_registrar,
+        "precio_compra": _precioCompra.text,
+        "gasto_mantenimiento": _gastoMantenimiento.text,
+        "id_finca": _finca_registrar,
+      });
+
+      Funciones.mostrarMensaje(
+        context,
+        "Animal actualizada",
+        "El animal ha sido actualizado exitosamente.",
+        onAceptar: () {
+          obtenerAnimalesOffline(); // recargar lista
+        },
+      );
+    } catch (e) {
+      Funciones.mostrarMensaje(context, "Error", "Error al actualizar finca offline: $e", exito: false);
+
+    }
+  }
+
+  void btn_modificaranimal( int id_animal){
+    if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
+      actualizarAnimalOflline(id_animal);
+    }
+    else{
+      actualizarAnimalOnline(id_animal);
+    }
+  }
+
+  Future<void> actualizarAnimalOnline(int id_animal) async {
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/guardar_animal.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "id_animal": id_animal,
-        "identificador": _identificacion.text,
+        "identificador": (_identificacion.text).toString().trim().toUpperCase(),
         "tipo": _tipo_registrar,
-        "raza": _raza.text,
+        "raza":   (_raza.text).toString().trim().toLowerCase(),
         "edad": _edad.text,
         "peso": _peso.text,
         "sexo": _sexo_registrar,
@@ -212,8 +254,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
         "Animal actualizado",
         data["message"],
         onAceptar: () {
-            obtenerAnimalesOnline();
-          limpiarCampos();
+          obtenerAnimalesOnline();
         },
       );
     } else {
@@ -224,7 +265,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   
 
   Future<void> eliminarAnimalOnline(int id_animal) async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/animal/eliminar_animal.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/eliminar_animal.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -240,11 +281,11 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   }
 
   Future<void> obtenerFincasOnline() async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/finca/listar_fincas.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/listar_fincas.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"usuario": widget.usuario}),
+      body: jsonEncode({"id_empresa": widget.idEmpresa}),
     );
 
     final data = jsonDecode(response.body);
@@ -278,7 +319,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   // --- Desplegables ---
 
   Widget _dropdownSexo() => _baseDropdown("Sexo", _sexo_registrar, ["Macho", "Hembra"], (v) => setState(() => _sexo_registrar = v));
-  Widget _dropdownProposito() => _baseDropdown("Propósito", _proposito_registrar, ["Carne", "Leche", "Cria", "Doble Proposito"], (v) => setState(() => _proposito_registrar = v));
+  Widget _dropdownProposito() => _baseDropdown("Propósito", _proposito_registrar, ["Carne", "Leche", "Cria", "Doble Proposito", "No Aplica","Trabajo"], (v) => setState(() => _proposito_registrar = v));
   Widget _dropdownEstado() => _baseDropdown("Estado", _estado_registrar, ["Activo", "Vendido", "Enfermo", "Fallecido"], (v) => setState(() => _estado_registrar = v));
   Widget _dropdownTipo() => _baseDropdown("Tipo", _tipo_registrar, ["Bovino", "Porcino", "Ovino", "Equino"], (v) => setState(() => _tipo_registrar = v));
   Widget _dropdownEstadoReproductivo() => _baseDropdown("Estado reproductivo", _estado_reproductivo_registrar, ["Prenada", "Vacia", "Apto", "No Aplica"], (v) => setState(() => _estado_reproductivo_registrar = v));
@@ -332,7 +373,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
 
 
   void btnAceptareliminado(int id_animal) {
-    if(EstadoSincronizacion().estado.value==SyncStatus.sinConexion){
+    if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
 
       eliminarAnimalOffline(id_animal);
     }
@@ -360,81 +401,161 @@ class _RegistroGanadoState extends State<RegistroGanado> {
     }
   }
 
+  void buscarAnimal(String texto) {
+
+    if (texto.isEmpty) {
+
+      setState(() {
+        animalesFiltrados = animales;
+      });
+
+      return;
+    }
+
+    final query = texto.toLowerCase();
+
+    final resultado = animales.where((a) {
+
+      final identificador = a["identificador"]
+          .toString()
+          .toLowerCase();
+
+      final raza = a["raza"]
+          .toString()
+          .toLowerCase();
+
+      final tipo = a["tipo"]
+          .toString()
+          .toLowerCase();
+
+      return identificador.contains(query) ||
+            raza.contains(query) ||
+            tipo.contains(query);
+
+    }).toList();
+
+    setState(() {
+      animalesFiltrados = resultado;
+    });
+  }
+
 
   // Formulario compartido para Registro y Modificación
   Widget _formularioAnimal() {
-    return Column(
-      mainAxisSize: MainAxisSize.min, // 🔥 IMPORTANTE
-      children: [
-        Row(
-          children: [
-            Expanded(child: Texto.campoTexto(_identificacion, "Identificación")),
-            const SizedBox(width: 10),
-            Expanded(child: _dropdownFinca()),
-          ],
-        ),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
 
-        const SizedBox(height: 10),
+          const Text(
+            "Información del Animal",
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 15),
 
-        Row(
-          children: [
-            Expanded(child: _dropdownTipo()),
-            const SizedBox(width: 10),
-            Expanded(child: Texto.campoTexto(_raza, "Raza")),
-          ],
-        ),
+          /// IDENTIFICACIÓN
+          const Text("Identificación", style: TextStyle(color: Colors.white)),
+          Texto.campoTexto(_identificacion, "Identificación"),
 
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-        Row(
-          children: [
-            Expanded(
-              child: Texto.campoTexto(_edad, "Edad", keyboardType: TextInputType.number, soloEnteros: true),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Texto.campoTexto(_peso, "Peso", keyboardType: TextInputType.number, soloDecimales: true)
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: _dropdownSexo()),
-          ],
-        ),
+          /// FINCA
+          const Text("Finca", style: TextStyle(color: Colors.white)),
+          _dropdownFinca(),
 
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-        Row(
-          children: [
-            Expanded(child: _dropdownProposito()),
-            const SizedBox(width: 10),
-            Expanded(child: _dropdownEstadoReproductivo()),
-          ],
-        ),
+          /// TIPO
+          const Text("Tipo", style: TextStyle(color: Colors.white)),
+          _dropdownTipo(),
 
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-        Row(
-          children: [
-            Expanded(child: Texto.campoTexto(_gastoMantenimiento, "Gasto mantenimiento", soloEnteros: true, keyboardType: TextInputType.number )),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Texto.campoTexto( _precioKilo,keyboardType: TextInputType.number, soloDecimales: true, "Precio x Kilo"),
-              
-            ),
-          ],
-        ),
+          /// RAZA
+          const Text("Raza", style: TextStyle(color: Colors.white)),
+          Texto.campoTexto(_raza, "Raza"),
 
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-        Row(
-          children: [
-            Expanded(child: _dropdownEstado()),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Texto.campoTexto( _precioCompra,keyboardType: TextInputType.number, soloEnteros: true, "Precio compra"),
-            ),
-          ],
-        ),
-      ],
+          /// FILA: EDAD - PESO - SEXO
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Edad", style: TextStyle(color: Colors.white)),
+                    Texto.campoTexto(_edad, "Edad (Años)",
+                        keyboardType: TextInputType.number, soloEnteros: true),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Peso", style: TextStyle(color: Colors.white)),
+                    Texto.campoTexto(_peso, "Peso (Kg)",
+                        keyboardType: TextInputType.number, soloDecimales: true),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Sexo", style: TextStyle(color: Colors.white)),
+                    _dropdownSexo(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          /// PROPÓSITO
+          const Text("Propósito", style: TextStyle(color: Colors.white)),
+          _dropdownProposito(),
+
+          const SizedBox(height: 10),
+
+          /// ESTADO REPRODUCTIVO
+          const Text("Estado Reproductivo", style: TextStyle(color: Colors.white)),
+          _dropdownEstadoReproductivo(),
+
+          const SizedBox(height: 10),
+
+          /// GASTO
+          const Text("Gasto Mantenimiento", style: TextStyle(color: Colors.white)),
+          Texto.campoTexto(_gastoMantenimiento, "Gasto mantenimiento",
+              soloEnteros: true, keyboardType: TextInputType.number),
+
+          const SizedBox(height: 10),
+
+          /// PRECIO KILO
+          const Text("Precio x Kilo", style: TextStyle(color: Colors.white)),
+          Texto.campoTexto(_precioKilo, "Precio x Kilo",
+              keyboardType: TextInputType.number, soloDecimales: true),
+
+          const SizedBox(height: 10),
+
+          /// ESTADO
+          const Text("Estado", style: TextStyle(color: Colors.white)),
+          _dropdownEstado(),
+
+          const SizedBox(height: 10),
+
+          /// PRECIO COMPRA
+          const Text("Precio Compra", style: TextStyle(color: Colors.white)),
+          Texto.campoTexto(_precioCompra, "Precio compra",
+              keyboardType: TextInputType.number, soloEnteros: true),
+
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
@@ -459,7 +580,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         child: Container(
-          width: 550,
+          width: 650,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: const Color.fromARGB(255, 126, 179, 128), borderRadius: BorderRadius.circular(15)),
           child: SingleChildScrollView(
@@ -480,7 +601,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5A8F5D)),
                       onPressed: () {
-                        actualizarAnimal(int.parse(animal["id_animal"].toString()));
+                        btn_modificaranimal(int.parse(animal["id_animal"].toString()));
                         Navigator.pop(context);
                       },
                       child: const Text("Actualizar Animal"),
@@ -495,6 +616,39 @@ class _RegistroGanadoState extends State<RegistroGanado> {
     );
   }
 
+  void limpiarbuscador() {
+    setState(() {
+      _buscador.clear();
+      animalesFiltrados = animales;
+    });
+
+  }
+  void elegirBuscadorTipo(int tipo) {
+  setState(() {
+    switch (tipo) {
+      case 1:
+        especieSeleccionada = "Bovino";
+        break;
+
+      case 2:
+        especieSeleccionada = "Ovino";
+        break;
+
+      case 3:
+        especieSeleccionada = "Equino";
+        break;
+
+      case 4:
+        especieSeleccionada = "Porcino";
+        break;
+    }
+
+    _buscador.text = especieSeleccionada;
+  });
+
+  buscarAnimal(_buscador.text);
+}
+
   void _registroanimal(BuildContext context) {
 
     limpiarCampos();
@@ -504,7 +658,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         child: Container(
-          width: 550,
+          width: 650,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: const Color.fromARGB(255, 126, 179, 128), borderRadius: BorderRadius.circular(15)),
           child: SingleChildScrollView(
@@ -562,15 +716,21 @@ class _RegistroGanadoState extends State<RegistroGanado> {
                 // Buscador
                 Row(
                   children: [
+
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const TextField(
-                          decoration: InputDecoration(
-                            hintText: "Buscador...",
+
+                        child: TextField(
+                          controller: _buscador,
+
+                          onChanged: buscarAnimal,
+
+                          decoration: const InputDecoration(
+                            hintText: "Buscar animal por ID, tipo o raza ...",
                             prefixIcon: Icon(Icons.search),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(vertical: 12),
@@ -578,12 +738,21 @@ class _RegistroGanadoState extends State<RegistroGanado> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    IconButton(onPressed: () {}, icon: const Icon(Icons.tune)),
+                    IconButton(onPressed: limpiarbuscador, icon: const Icon(Icons.clear_rounded), color: Colors.red,),
                   ],
                 ),
-                const SizedBox(height: 15),
-                
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    Spacer(),
+                    ElevatedButton.icon(
+                        onPressed:  () =>_registroanimal(context),
+                        icon: const Icon(Icons.add),
+                        label: const Text("Nuevo Animal"),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                      ),
+                  ],
+                ),
                 // Filtros de Especies
                 const Text("Especies", style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
@@ -591,15 +760,46 @@ class _RegistroGanadoState extends State<RegistroGanado> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _chipEspecie("Bovino", null, true),
-                      _chipEspecie("Ovino", null, false),
-                      _chipEspecie("Todos", null, false),
-                      ElevatedButton.icon(
-                        onPressed:  () =>_registroanimal(context),
-                        icon: const Icon(Icons.add),
-                        label: const Text("Nuevo Animal"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                      )
+                      Wrap(
+                        children: [
+                          GestureDetector(
+                            onTap: () => elegirBuscadorTipo(1),
+                            child: _chipEspecie(
+                              "Bovino",
+                              null,
+                              especieSeleccionada == "Bovino",
+                            ),
+                          ),
+
+                          GestureDetector(
+                            onTap: () => elegirBuscadorTipo(2),
+                            child: _chipEspecie(
+                              "Ovino",
+                              null,
+                              especieSeleccionada == "Ovino",
+                            ),
+                          ),
+
+                          GestureDetector(
+                            onTap: () => elegirBuscadorTipo(3),
+                            child: _chipEspecie(
+                              "Equino",
+                              null,
+                              especieSeleccionada == "Equino",
+                            ),
+                          ),
+
+                          GestureDetector(
+                            onTap: () => elegirBuscadorTipo(4),
+                            child: _chipEspecie(
+                              "Porcino",
+                              null,
+                              especieSeleccionada == "Porcino",
+                            ),
+                          ),
+                        ],
+                      ),
+                      
                     ],
                   ),
                 ),
@@ -613,8 +813,8 @@ class _RegistroGanadoState extends State<RegistroGanado> {
               ? const Center(child: CircularProgressIndicator())
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: animales.length,
-                  itemBuilder: (context, index) => _cardAnimal(animales[index]),
+                  itemCount: animalesFiltrados.length,
+                  itemBuilder: (context, index) => _cardAnimal(animalesFiltrados[index]),
                 ),
           ),
         ],
@@ -622,7 +822,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
     );
   }
 
-  Widget _chipEspecie(String label, IconData? icon, bool selected) {
+  Widget _chipEspecie(String label, VoidCallback? onPressed, bool selected) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -633,8 +833,6 @@ class _RegistroGanadoState extends State<RegistroGanado> {
       ),
       child: Row(
         children: [
-          if (icon != null) Icon(icon, size: 16, color: selected ? Colors.green : Colors.black),
-          const SizedBox(width: 4),
           Text(label, style: TextStyle(color: selected ? Colors.green : Colors.black, fontWeight: FontWeight.bold)),
         ],
       ),
@@ -642,7 +840,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   }
   Widget _cardAnimal(dynamic animal) {
     // Lógica de sincronización basada en tu base de datos offline
-    bool estaSincronizado = animal["estado_sincronizacion"] == 1 || animal["estado_sincronizacion"] == 0; 
+    bool estaSincronizado = animal["estado_sincronizacion"] == 1 ; 
 
     return Card(
       elevation: 0,
@@ -694,11 +892,11 @@ class _RegistroGanadoState extends State<RegistroGanado> {
                     // Icono de sincronización
                     Icon(
                       estaSincronizado ? Icons.sync : Icons.hourglass_empty,
-                      color: estaSincronizado ? Colors.green : Colors.orange,
+                      color: estaSincronizado ? Colors.green : Colors.blue,
                     ),
                     Text(
                       estaSincronizado ? "Sincronizado" : "Pendiente",
-                      style: TextStyle(fontSize: 10, color: estaSincronizado ? Colors.green : Colors.orange),
+                      style: TextStyle(fontSize: 10, color: estaSincronizado ? Colors.green : Colors.blue),
                     ),
                     const SizedBox(height: 20),
                     
@@ -711,7 +909,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
                         ),
                         IconButton(
                           onPressed: () => _btneliminarAnimal(int.parse(animal["id_animal"].toString())),
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          icon: const Icon(Icons.delete, color: Colors.red),
                         ),
                       ],
                     )

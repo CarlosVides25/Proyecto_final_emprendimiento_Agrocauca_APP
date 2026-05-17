@@ -15,7 +15,16 @@ $clave = $data['clave'];
 
 // 1. Consulta: Traemos id, nombre y la contraseña para validar
 // Ajusta 'id_usuario' si en tu tabla se llama solo 'id'
-$sql = "SELECT id_usuario, nombre, contrasena FROM usuario WHERE correo = ?";
+$sql = "SELECT 
+u.id_usuario,
+u.id_empresa,
+u.nombre,
+u.correo,
+u.contrasena,
+e.nombre as nombre_empresa
+FROM usuario u
+INNER JOIN empresa e ON e.id_empresa = u.id_empresa
+WHERE correo = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $correo);
 $stmt->execute();
@@ -26,7 +35,8 @@ if ($user = $result->fetch_assoc()) {
     if ($clave === $user['contrasena']) {
         $id_usuario = $user['id_usuario'];
         $nombre_usuario = $user['nombre'];
-        
+        $id_empresa = $user['id_empresa'];
+        $nombre_empresa= $user['nombre_empresa'];
         // 3. Generar un token único
         $token = bin2hex(random_bytes(32));
 
@@ -42,7 +52,9 @@ if ($user = $result->fetch_assoc()) {
                 "token" => $token,
                 "usuario" => $id_usuario,
                 "nombre" => $nombre_usuario,
-                "correo" => $correo
+                "correo" => $correo,
+                "id_empresa" => $id_empresa,
+                "nombre_empresa" => $nombre_empresa,
             ]);
         } else {
             echo json_encode(["success" => false, "message" => "Error al crear la sesión"]);

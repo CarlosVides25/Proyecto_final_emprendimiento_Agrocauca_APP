@@ -2,15 +2,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-import 'package:trabajo_final/componentes/Funciones.dart';
-import 'package:trabajo_final/componentes/estado_sincronizacion.dart';
-import 'package:trabajo_final/componentes/texto.dart';
-import 'package:trabajo_final/base_datos/base_de_datos.dart';
+import 'package:agrocauca/componentes/Funciones.dart';
+import 'package:agrocauca/componentes/estado_sincronizacion.dart';
+import 'package:agrocauca/componentes/texto.dart';
+import 'package:agrocauca/base_datos/base_de_datos.dart';
 class Registro_finca extends StatefulWidget {
   final int usuario;
+  final int idEmpresa;  
   const Registro_finca({
     Key? key,
-    required this.usuario
+    required this.usuario,
+    required this.idEmpresa,
   }) : super(key: key);
   @override
   _Registro_fincaState createState() => _Registro_fincaState();
@@ -28,7 +30,7 @@ class _Registro_fincaState extends State<Registro_finca> {
   @override
   void initState() {
     super.initState();
-    if(EstadoSincronizacion().estado.value==SyncStatus.sinConexion){
+    if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
       obtenerFincasOffline();
     }
     else{
@@ -41,7 +43,7 @@ class _Registro_fincaState extends State<Registro_finca> {
     print("📱 Cargando fincas OFFLINE");
 
     try {
-      final data = await BaseDeDatos.obtenerFincas(widget.usuario);
+      final data = await BaseDeDatos.obtenerFincas(widget.idEmpresa);
 
       setState(() {
         fincas = data;
@@ -58,7 +60,7 @@ class _Registro_fincaState extends State<Registro_finca> {
   }
 
   Future<void> actualizarFincaOnline(int id_finca) async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/finca/guardar_finca.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/guardar_finca.php");
 
     final response = await http.post(
       url,
@@ -89,13 +91,14 @@ class _Registro_fincaState extends State<Registro_finca> {
   }
 
   Future<void> actualizarFincaOffline(int id_finca) async {
+    print("actualizando finca offline");
     try {
       await BaseDeDatos.actualizarFinca({
         "id_finca": id_finca, // El ID de la finca que se está editando
         "nombre": _nombre.text,
         "ubicacion": _ubicacion.text,
         "area": double.tryParse(_area.text) ?? 0.0,
-        "usuario_id": widget.usuario, // Mantenemos el dueño de la finca
+        "id_empresa": widget.idEmpresa, // Mantenemos la empresa a la que pertenece la finca
       });
 
       Funciones.mostrarMensaje(
@@ -107,7 +110,6 @@ class _Registro_fincaState extends State<Registro_finca> {
           obtenerFincasOffline(); // recargar lista
         },
       );
-      Navigator.pop(context); // Regresar a la lista
     } catch (e) {
       Funciones.mostrarMensaje(context, "Error", "Error al actualizar finca offline: $e", exito: false);
 
@@ -118,16 +120,16 @@ class _Registro_fincaState extends State<Registro_finca> {
 
   Future<void> obtenerFincasOnline() async {
 
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/finca/listar_fincas.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/listar_fincas.php");
 
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "usuario": widget.usuario,
+        "id_empresa": widget.idEmpresa,
       }),
     );
-    print(response.body);
+
     final data = jsonDecode(response.body);
     
     setState(() {
@@ -161,7 +163,7 @@ class _Registro_fincaState extends State<Registro_finca> {
 
   }
   void btnAceptareliminado(int id_finca){
-    if(EstadoSincronizacion().estado.value==SyncStatus.sinConexion){
+    if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
       eliminarFincaOffline(id_finca);
     }
     else{
@@ -187,7 +189,7 @@ class _Registro_fincaState extends State<Registro_finca> {
   }
 
   Future<void> eliminarFincaOnline(int id_finca) async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/finca/eliminar_finca.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/eliminar_finca.php");
 
     final response = await http.post(
       url,
@@ -208,7 +210,7 @@ class _Registro_fincaState extends State<Registro_finca> {
 
 
   Future<void> insertarFinca() async {
-    final url = Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/finca/guardar_finca.php");
+    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/guardar_finca.php");
 
     final response = await http.post(
       url,
@@ -217,12 +219,11 @@ class _Registro_fincaState extends State<Registro_finca> {
         "nombre": _nombre.text,
         "ubicacion": _ubicacion.text,
         "area": double.tryParse(_area.text) ?? 0,
-        "id_usuario": widget.usuario,
+        "id_empresa": widget.idEmpresa,
 
       }),
     );  
-    print("Respuesta del servidor: ${response.statusCode}");
-    print(response.body);
+
     final data = json.decode(response.body);
 
     if (data["success"]) {
@@ -240,7 +241,7 @@ class _Registro_fincaState extends State<Registro_finca> {
         "nombre": _nombre.text,
         "ubicacion": _ubicacion.text,
         "area": double.tryParse(_area.text) ?? 0.0,
-        "usuario_id": widget.usuario, // El ID del usuario que inició sesión
+        "id_empresa": widget.idEmpresa, // El ID de la empresa a la que pertenece
       });
 
       Funciones.mostrarMensaje(context, "Finca registrada", "La finca ha sido registrada exitosamente.", onAceptar: obtenerFincasOffline);
@@ -265,7 +266,7 @@ class _Registro_fincaState extends State<Registro_finca> {
 
   void btn_actualizarfinca(int id_finca){
 
-    if(EstadoSincronizacion().estado.value==SyncStatus.sinConexion){
+    if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
 
       actualizarFincaOffline(id_finca);
     }
@@ -376,7 +377,7 @@ class _Registro_fincaState extends State<Registro_finca> {
 
   void btningresarfinca(){
     
-    if(EstadoSincronizacion().estado.value==SyncStatus.sinConexion){
+    if(EstadoSincronizacion().estado.value==SincronizacionEstado.sinConexion){
       insertarFincaOflline();
     }
     else{
@@ -610,7 +611,7 @@ class _Registro_fincaState extends State<Registro_finca> {
                 _filaDato("Área", "${finca["area"]} ha"),
                 _filaDato("Animales", finca["total_animales"].toString()),
                 _filaDato(
-                  "Fecha",
+                  "Fecha de Creacion",
                   finca["fecha_creacion"].toString().substring(0, 10),
                 ),
               ],

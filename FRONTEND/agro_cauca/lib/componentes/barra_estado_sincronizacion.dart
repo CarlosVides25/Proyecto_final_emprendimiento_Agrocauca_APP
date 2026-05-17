@@ -11,19 +11,19 @@ class BarraEstadoSincronizacion extends StatelessWidget {
         Color color = Colors.grey;
 
         switch (estado) {
-          case SyncStatus.conectado:
+          case SincronizacionEstado.conectado:
             texto = "Conectado";
             color = Colors.green;
             break;
-          case SyncStatus.pendiente:
+          case SincronizacionEstado.pendiente:
             texto = "Pendiente";
             color = Colors.orange;
             break;
-          case SyncStatus.sincronizado:
+          case SincronizacionEstado.sincronizado:
             texto = "Sincronizado";
             color = Colors.blue;
             break;
-          case SyncStatus.sinConexion:
+          case SincronizacionEstado.sinConexion:
             texto = "Sin conexión";
             color = Colors.red;
             break;

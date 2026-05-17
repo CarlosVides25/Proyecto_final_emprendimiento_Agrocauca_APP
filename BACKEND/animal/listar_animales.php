@@ -3,7 +3,7 @@ require_once __DIR__ . "/../config/conexion.php";
 
 
 $data = json_decode(file_get_contents("php://input"), true);
-$id_usuario = $data['usuario'] ?? 0;
+$id_empresa = $data['id_empresa'] ?? 0;
 
 $sql = "SELECT 
             a.id_animal,
@@ -27,10 +27,10 @@ $sql = "SELECT
             f.nombre AS nombre_finca
         FROM animal a
         INNER JOIN finca f ON a.id_finca = f.id_finca
-        WHERE f.id_usuario = ?";
+        WHERE f.id_empresa = ? AND a.eliminado=0";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id_usuario);
+$stmt->bind_param("i", $id_empresa);
 $stmt->execute();
 
 $result = $stmt->get_result();

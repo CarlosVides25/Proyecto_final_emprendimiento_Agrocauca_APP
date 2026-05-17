@@ -3,7 +3,7 @@
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
-
+date_default_timezone_set('America/Bogota');
 // Datos de conexión
 $host = "localhost";
 $user = "root";

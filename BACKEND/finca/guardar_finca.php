@@ -13,7 +13,7 @@ $id_finca = $data["id_finca"] ?? 0;
 $nombre = $data['nombre'] ?? '';
 $ubicacion = $data['ubicacion'] ?? '';
 $area = $data['area'] ?? 0;
-$id_usuario = $data['id_usuario'] ?? 0;
+$id_empresa = $data['id_empresa'] ?? 0;
 $eliminado = $data['eliminado'] ?? 0;
 
 $result = $conn->query("SELECT id_finca FROM finca WHERE id_finca = $id_finca");
@@ -36,9 +36,9 @@ if ($result && $result->num_rows > 0) {
 
     // INSERT
     $sql = "INSERT INTO finca 
-            (nombre, ubicacion, area, id_usuario, fecha_creacion,creado_fecha,actualizado_fecha,estado_sincronizacion,eliminado)
+            (nombre, ubicacion, area, id_empresa, fecha_creacion,actualizado_fecha,estado_sincronizacion,eliminado)
             VALUES 
-            ('$nombre', '$ubicacion', $area, $id_usuario, NOW(), NOW(), NOW(), 0, 0 )";
+            ('$nombre', '$ubicacion', $area, $id_empresa, NOW(), NOW(), 1, 0 )";
 
     $accion = "creada";
 }

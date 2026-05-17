@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:trabajo_final/componentes/estado_sincronizacion.dart';
-import 'package:trabajo_final/inicio_sesion.dart';
-import 'package:trabajo_final/manejo_sesion.dart';
-import 'package:trabajo_final/menu.dart';
-import 'package:trabajo_final/base_datos/base_de_datos.dart';
+import 'package:agrocauca/componentes/estado_sincronizacion.dart';
+import 'package:agrocauca/inicio_sesion.dart';
+import 'package:agrocauca/manejo_sesion.dart';
+import 'package:agrocauca/menu.dart';
+import 'package:agrocauca/base_datos/base_de_datos.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -55,26 +55,6 @@ class _SplashCheckerState extends State<SplashChecker> {
     });
   }
 
-  // Ejemplo dentro de la función de login exitoso:
-  Future<void> sincronizacionInicial(int usuarioId) async {
-    try {
-      // 1. Consultar al servidor (Usa tu IP real, no localhost)
-      final response = await http.get(
-        Uri.parse("http://10.211.222.189/AgroCauca/BACKEND/obtener_todo.php?id_usuario=$usuarioId")
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        // 2. Llenar la base de datos offline
-        await BaseDeDatos.cargarDatosServidor(data);
-        print("Base de datos offline cargada correctamente");
-      }
-    } catch (e) {
-      print("Modo offline: No se pudo descargar datos, usando local.");
-    }
-  }
-
   void verificarYEntrar() async {
     bool valida = await SessionManager.esSesionValida();
 
@@ -84,7 +64,8 @@ class _SplashCheckerState extends State<SplashChecker> {
       int? id = await SessionManager.getUsuarioId();
       String? correo = await SessionManager.getUsuarioCorreo();
       String? nombre = await SessionManager.getUsuarioNombre();
-
+      String? nombreEmpresa = await SessionManager.getNombreEmpresa();
+      int? idEmpresa = await SessionManager.getEmpresa();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -92,6 +73,8 @@ class _SplashCheckerState extends State<SplashChecker> {
             usuario: id!,
             correo: correo!,
             nombre: nombre!,
+            idEmpresa: idEmpresa!,
+            nombreEmpresa: nombreEmpresa!,
           ),
         ),
       );
