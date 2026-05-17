@@ -60,7 +60,7 @@ class _Registro_fincaState extends State<Registro_finca> {
   }
 
   Future<void> actualizarFincaOnline(int id_finca) async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/guardar_finca.php");
+    final url = Uri.parse("http://18.222.251.74/finca/guardar_finca.php");
 
     final response = await http.post(
       url,
@@ -120,7 +120,7 @@ class _Registro_fincaState extends State<Registro_finca> {
 
   Future<void> obtenerFincasOnline() async {
 
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/listar_fincas.php");
+    final url = Uri.parse("http://18.222.251.74/finca/listar_fincas.php");
 
     final response = await http.post(
       url,
@@ -189,7 +189,7 @@ class _Registro_fincaState extends State<Registro_finca> {
   }
 
   Future<void> eliminarFincaOnline(int id_finca) async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/eliminar_finca.php");
+    final url = Uri.parse("http://18.222.251.74/finca/eliminar_finca.php");
 
     final response = await http.post(
       url,
@@ -210,7 +210,7 @@ class _Registro_fincaState extends State<Registro_finca> {
 
 
   Future<void> insertarFinca() async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/guardar_finca.php");
+    final url = Uri.parse("http://18.222.251.74/finca/guardar_finca.php");
 
     final response = await http.post(
       url,

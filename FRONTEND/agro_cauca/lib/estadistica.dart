@@ -41,7 +41,7 @@ class _EstadisticasState extends State<Estadisticas> {
   }
 
   Future<Map<String, dynamic>> obtenerReportesOnline(int idEmpresa) async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/reportes/reporte.php");
+    final url = Uri.parse("http://18.222.251.74/reportes/reporte.php");
 
     final res = await http.post(
       url,

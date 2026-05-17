@@ -67,7 +67,7 @@ class _FinanzasState extends State<Finanzas> {
   }
 
   Future<void> obtenerAnimalesOnline() async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/listar_animales.php");
+    final url = Uri.parse("http://18.222.251.74/animal/listar_animales.php");
 
     final response = await http.post(
       url,

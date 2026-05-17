@@ -115,7 +115,7 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
 
  
   Future<void> _inicioSesionOnline() async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/inicio_sesion.php");
+    final url = Uri.parse("http://18.222.251.74/inicio_sesion.php");
     
     final response = await http.post(
       url,
@@ -153,7 +153,7 @@ class _inicio_sesionState extends State<Inicio_sesion>  {
 
   Future <void> _cargarDatosOffline( int usuario, int id_empresa) async {
     print("cargando datos offline para usuario $usuario");
-    final url = (Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/obtener_todo.php"));
+    final url = (Uri.parse("http://18.222.251.74/obtener_todo.php"));
   
     final response = await http.post(
       url,

@@ -86,7 +86,7 @@ class SessionManager {
     else{
       print("Validando sesión con servidor...");
       final response = await http.post(
-        Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/verificar_sesion.php"),
+        Uri.parse("http://18.222.251.74/verificar_sesion.php"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"token": token}),
       );

@@ -93,7 +93,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   }
 
   Future<void> obtenerAnimalesOnline() async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/listar_animales.php");
+    final url = Uri.parse("http://18.222.251.74/animal/listar_animales.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -111,7 +111,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   }
 
   Future<void> insertarAnimalOnline() async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/guardar_animal.php");
+    final url = Uri.parse("http://18.222.251.74/animal/guardar_animal.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -225,7 +225,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   }
 
   Future<void> actualizarAnimalOnline(int id_animal) async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/guardar_animal.php");
+    final url = Uri.parse("http://18.222.251.74/animal/guardar_animal.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -265,7 +265,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   
 
   Future<void> eliminarAnimalOnline(int id_animal) async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/animal/eliminar_animal.php");
+    final url = Uri.parse("http://18.222.251.74/animal/eliminar_animal.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -281,7 +281,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
   }
 
   Future<void> obtenerFincasOnline() async {
-    final url = Uri.parse("http://10.172.172.189/AgroCauca/BACKEND/finca/listar_fincas.php");
+    final url = Uri.parse("http://18.222.251.74/finca/listar_fincas.php");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
