@@ -98,7 +98,7 @@ class _MenuState extends State<Menu> {
     print( cambios);
     print("sigue...");
     final response = await http.post(
-      Uri.parse("http://18.222.251.74//AgroCauca/sincronizacion/sincronizacion.php"),
+      Uri.parse("http://18.222.251.74/sincronizacion/sincronizacion.php"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(cambios),
     );

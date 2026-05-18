@@ -18,6 +18,7 @@ $precio_compra = $data['precio_compra'] ?? 0;
 $id_finca = $data['id_finca'] ?? 0;
 $id_animal= $data['id_animal'] ?? 0;
 $eliminado= $data['eliminado'] ?? 0;
+$id_sincro = $data['id_sincro'] ?? 0;
 
 // VALIDACIÓN
 if ($identificador == '' || $tipo == '' || $id_finca == 0) {
@@ -52,7 +53,8 @@ if ($result && $result->num_rows > 0) {
             id_finca = $id_finca,
             estado_sincronizacion = 1,
             actualizado_fecha= NOW(),
-            eliminado=$eliminado
+            eliminado=$eliminado,
+            id_sincro='$id_sincro'
         WHERE id_animal = $id_animal";
 
     $accion = "actualizado";
@@ -77,21 +79,40 @@ if ($result && $result->num_rows > 0) {
             estado_sincronizacion,
             actualizado_fecha,
             eliminado,
-            fecha_compra
+            fecha_compra,
+            id_sincro
         ) VALUES ('$identificador', 
                   '$tipo',
                   '$raza', 
                   $edad,
-                  $peso, '$sexo', '$proposito', '$estado_reproductivo', $precio_kilo, '$estado', $precio_compra,NOW(),$gasto_mantenimiento, $id_finca,1,NOW(),0,NOW())";
+                  $peso, '$sexo', '$proposito', '$estado_reproductivo', $precio_kilo, '$estado', $precio_compra,NOW(),$gasto_mantenimiento, $id_finca,1,NOW(),0,NOW(),'$id_sincro')";
 
     $accion = "creado";
 }
 if ($conn->query($sql)) {
+
+    // Si fue INSERT obtener nuevo ID
+    if ($id_animal == 0) {
+        $id_animal = $conn->insert_id;
+    }
+
+    // Obtener animal actualizado
+    $consulta = $conn->query("
+        SELECT *
+        FROM animal
+        WHERE id_animal = $id_animal
+    ");
+
+    $animal = $consulta->fetch_assoc();
+
     echo json_encode([
         "success" => true,
-        "message" => "Animal $accion correctamente"
+        "message" => "Animal $accion correctamente",
+        "animal" => $animal
     ]);
+
 } else {
+
     echo json_encode([
         "success" => false,
         "error" => $conn->error

@@ -8,6 +8,7 @@ import 'package:agrocauca/componentes/texto.dart';
 import 'package:agrocauca/componentes/desplegable.dart';
 import 'package:agrocauca/componentes/estado_sincronizacion.dart';
 import 'package:agrocauca/base_datos/base_de_datos.dart';
+import 'package:uuid/uuid.dart';
 
 class RegistroGanado extends StatefulWidget {
   final int usuario;
@@ -112,6 +113,8 @@ class _RegistroGanadoState extends State<RegistroGanado> {
 
   Future<void> insertarAnimalOnline() async {
     final url = Uri.parse("http://18.222.251.74/animal/guardar_animal.php");
+
+    final uuid = Uuid();
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -129,6 +132,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
         "precio_compra": _precioCompra.text,
         "gasto_mantenimiento": _gastoMantenimiento.text,
         "id_finca": _finca_registrar,
+        "id_sincro": uuid.v4(), // Genera un ID único para sincronización
       }),
     );
     print("ejecuto");
@@ -137,6 +141,9 @@ class _RegistroGanadoState extends State<RegistroGanado> {
     if (data["success"]) {
       Funciones.mostrarMensaje(context, "Animal registrado", "El animal ha sido registrado exitosamente.",
         onAceptar: obtenerAnimalesOnline);
+      await BaseDeDatos.guardarAnimalServidor(
+        data["animal"]
+      );
     } else {
       Funciones.mostrarMensaje(context, "Error", "${data["error"]}");
     }
@@ -226,6 +233,8 @@ class _RegistroGanadoState extends State<RegistroGanado> {
 
   Future<void> actualizarAnimalOnline(int id_animal) async {
     final url = Uri.parse("http://18.222.251.74/animal/guardar_animal.php");
+
+    final uuid = Uuid();
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -244,6 +253,7 @@ class _RegistroGanadoState extends State<RegistroGanado> {
         "precio_compra": _precioCompra.text,
         "gasto_mantenimiento": _gastoMantenimiento.text,
         "id_finca": _finca_registrar,
+        "id_sincro": uuid.v4(), 
       }),
     );
 

@@ -7,7 +7,7 @@ date_default_timezone_set('America/Bogota');
 // Datos de conexión
 $host = "localhost";
 $user = "root";
-$password = "rokka-25";
+$password = "";
 $dbname = "agrocauca";
 
 // Crear conexión

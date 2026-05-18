@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:uuid/uuid.dart';
 
 class BaseDeDatos {
   static Database? _database;
@@ -63,7 +64,7 @@ class BaseDeDatos {
         id_empresa INTEGER, -- A qué empresa pertenece
 
         total_animales INTEGER DEFAULT 0,
-
+        id_sincro TEXT,
         fecha_creacion TEXT,
         actualizado_fecha TEXT,
 
@@ -97,6 +98,7 @@ class BaseDeDatos {
         actualizado_fecha TEXT,
         estado_sincronizacion INTEGER DEFAULT 0,
         eliminado INTEGER DEFAULT 0,
+        id_sincro TEXT,
 
         FOREIGN KEY (id_finca) REFERENCES fincas (id_finca)
       )
@@ -132,6 +134,8 @@ class BaseDeDatos {
   }
 
   static Future<int> ingresarFinca(Map<String, dynamic> finca) async {
+
+    final uuid = Uuid();
     final db = await database;
     int tempId = -DateTime.now().millisecondsSinceEpoch;
     // Creamos una copia para no modificar el objeto original y asegurar campos offline
@@ -141,7 +145,7 @@ class BaseDeDatos {
     datosFinca['eliminado'] = 0;
     datosFinca['fecha_creacion'] = DateTime.now().toString();
     datosFinca['actualizado_fecha'] = DateTime.now().toString();
-
+    datosFinca['id_sincro'] = uuid.v4();
     return await db.insert(
       'fincas', 
       datosFinca, 
@@ -153,13 +157,14 @@ class BaseDeDatos {
   static Future<int> ingresarAnimal(Map<String, dynamic> animal) async {
     final db = await database;
     int tempId = -DateTime.now().millisecondsSinceEpoch;
-
+    final uuid = Uuid();
     Map<String, dynamic> datosAnimal = Map.from(animal);
     datosAnimal['id_animal'] = tempId;
     datosAnimal['estado_sincronizacion'] = 0; // 0 = Pendiente de subir al servidor
     datosAnimal['eliminado'] = 0;
     datosAnimal['fecha_creacion'] = DateTime.now().toString();
     datosAnimal['actualizado_fecha'] = DateTime.now().toString();
+    datosAnimal['id_sincro'] = uuid.v4();
 
     return await db.insert(
       'animales', 
@@ -170,12 +175,14 @@ class BaseDeDatos {
 
   static Future<int> actualizarFinca(Map<String, dynamic> finca) async {
     final db = await database;
+    final uuid = Uuid();
     return await db.update(
       'fincas',
       {
         ...finca,
         'estado_sincronizacion': 0, // Pendiente de actualizar en la nube
         'actualizado_fecha': DateTime.now().toString(),
+        'id_sincro': uuid.v4(),
       },
       where: 'id_finca = ?',
       whereArgs: [finca['id_finca']],
@@ -243,12 +250,14 @@ class BaseDeDatos {
 
   static Future<int> actualizarAnimal(Map<String, dynamic> animal) async {
     final db = await database;
+    final uuid = Uuid();
     return await db.update(
       'animales',
       {
         ...animal,
         'estado_sincronizacion': 0,
         'actualizado_fecha': DateTime.now().toString(),
+        'id_sincro': uuid.v4(),
       },
       where: 'id_animal = ?',
       whereArgs: [animal['id_animal']],
@@ -370,23 +379,58 @@ class BaseDeDatos {
     // 
     if (data['fincas'] != null) {
       for (var f in data['fincas']) {
-          batch.insert(
+
+          final datosFinca = {
+            'id_finca': int.parse(f['id_finca'].toString()),
+            'id_sincro': f['id_sincro'].toString(),
+
+            'nombre': f['nombre'].toString(),
+            'ubicacion': f['ubicacion'].toString(),
+            'area': double.tryParse(f['area'].toString()) ?? 0,
+
+            'id_empresa': int.parse(f['id_empresa'].toString()),
+
+            'total_animales':
+                int.tryParse(f['total_animales']?.toString() ?? "0") ?? 0,
+
+            'fecha_creacion': f['fecha_creacion'].toString(),
+
+            'actualizado_fecha':
+                f['actualizado_fecha']?.toString() ??
+                f['fecha_creacion'].toString(),
+
+            'estado_sincronizacion': 1,
+
+            'eliminado':
+                int.tryParse(f['eliminado'].toString()) ?? 0,
+          };
+
+          // BUSCAR SI YA EXISTE POR id_sincro
+          final existente = await db.query(
             'fincas',
-            {'id_finca': int.parse(f['id_finca'].toString()),
-              'nombre': f['nombre'].toString(),
-              'ubicacion': f['ubicacion'].toString(),
-              'area': double.tryParse(f['area'].toString()) ?? 0,
-              'id_empresa': int.parse(f['id_empresa'].toString()),
-              'total_animales': int.tryParse(f['total_animales']?.toString() ?? "0") ?? 0,
-
-              'fecha_creacion': f['fecha_creacion'].toString(),
-              'actualizado_fecha': f['actualizado_fecha']?.toString() ?? f['fecha_creacion'].toString(),
-
-              'estado_sincronizacion': 1, // viene del servidor → ya sincronizado
-              'eliminado': int.tryParse(f['eliminado'].toString()) ?? 0,
-            },
-          conflictAlgorithm: ConflictAlgorithm.replace,
+            where: 'id_sincro = ?',
+            whereArgs: [f['id_sincro'].toString()],
           );
+
+          if (existente.isNotEmpty) {
+
+            // UPDATE
+            batch.update(
+              'fincas',
+              datosFinca,
+              where: 'id_sincro = ?',
+              whereArgs: [f['id_sincro'].toString()],
+            );
+
+          } else {
+
+            // INSERT
+            batch.insert(
+              'fincas',
+              datosFinca,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
         }
       }
   
@@ -395,31 +439,75 @@ class BaseDeDatos {
 
       for (var a in data['animales']) {
 
-        batch.insert(
+        final datosAnimal = {
+          'id_animal': int.parse(a['id_animal'].toString()),
+          'id_sincro': a['id_sincro'].toString(),
+
+          'identificador': a['identificador'].toString(),
+          'tipo': a['tipo'].toString(),
+          'raza': a['raza'].toString(),
+
+          'edad': int.tryParse(a['edad'].toString()) ?? 0,
+
+          'peso': double.tryParse(a['peso'].toString()) ?? 0,
+
+          'sexo': a['sexo'].toString(),
+          'proposito': a['proposito'].toString(),
+          'estado_reproductivo':
+              a['estado_reproductivo'].toString(),
+
+          'estado': a['estado'].toString(),
+
+          'precio_compra':
+              double.tryParse(a['precio_compra'].toString()) ?? 0,
+
+          'precio_kilo':
+              double.tryParse(a['precio_kilo'].toString()) ?? 0,
+
+          'gasto_mantenimiento':
+              double.tryParse(a['gasto_mantenimiento'].toString()) ?? 0,
+
+          'fecha_compra': a['fecha_compra'].toString(),
+
+          'id_finca': int.parse(a['id_finca'].toString()),
+
+          'fecha_creacion': a['fecha_creacion'].toString(),
+
+          'actualizado_fecha':
+              a['actualizado_fecha'].toString(),
+
+          'estado_sincronizacion': 1,
+
+          'eliminado':
+              int.tryParse(a['eliminado'].toString()) ?? 0,
+        };
+
+        // BUSCAR SI YA EXISTE
+        final existente = await db.query(
           'animales',
-            {
-            'id_animal': int.parse(a['id_animal'].toString()),
-            'identificador': a['identificador'].toString(),
-            'tipo': a['tipo'].toString(),
-            'raza': a['raza'].toString(),
-            'edad': int.tryParse(a['edad'].toString()) ?? 0,
-            'peso': double.tryParse(a['peso'].toString()) ?? 0,
-            'sexo': a['sexo'].toString(),
-            'proposito': a['proposito'].toString(),
-            'estado_reproductivo': a['estado_reproductivo'].toString(),
-            'estado': a['estado'].toString(),
-            'precio_compra': double.tryParse(a['precio_compra'].toString()) ?? 0,
-            'precio_kilo': double.tryParse(a['precio_kilo'].toString()) ?? 0,
-            'gasto_mantenimiento': double.tryParse(a['gasto_mantenimiento'].toString()) ?? 0,
-            'fecha_compra': a['fecha_compra'].toString(),
-            'id_finca': int.parse(a['id_finca'].toString()),
-            'fecha_creacion': a['fecha_creacion'].toString(),
-            'actualizado_fecha': a['actualizado_fecha'].toString(),
-            'estado_sincronizacion': 1,
-            'eliminado': int.tryParse(a['eliminado'].toString()) ?? 0,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
+          where: 'id_sincro = ?',
+          whereArgs: [a['id_sincro'].toString()],
+        );
+
+        if (existente.isNotEmpty) {
+
+          // UPDATE
+          batch.update(
+            'animales',
+            datosAnimal,
+            where: 'id_sincro = ?',
+            whereArgs: [a['id_sincro'].toString()],
           );
+
+        } else {
+
+          // INSERT
+          batch.insert(
+            'animales',
+            datosAnimal,
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
 
       }
     }
@@ -562,6 +650,180 @@ class BaseDeDatos {
 
     // valor por defecto (primera sync)
     return "2000-01-01 00:00:00";
+  }
+  // ==========================================
+// GUARDAR FINCA DESDE SERVIDOR
+// ==========================================
+
+static Future<void> guardarFincaServidor(
+  Map<String, dynamic> f,
+) async {
+
+  final db = await database;
+
+  final datosFinca = {
+    'id_finca': int.parse(f['id_finca'].toString()),
+    'id_sincro': f['id_sincro'].toString(),
+
+    'nombre': f['nombre'].toString(),
+    'ubicacion': f['ubicacion'].toString(),
+
+    'area':
+        double.tryParse(f['area'].toString()) ?? 0,
+
+    'id_empresa':
+        int.parse(f['id_empresa'].toString()),
+
+    'total_animales':
+        int.tryParse(
+          f['total_animales']?.toString() ?? "0"
+        ) ?? 0,
+
+    'fecha_creacion':
+        f['fecha_creacion'].toString(),
+
+    'actualizado_fecha':
+        f['actualizado_fecha'].toString(),
+
+    'estado_sincronizacion': 1,
+
+    'eliminado':
+        int.tryParse(f['eliminado'].toString()) ?? 0,
+  };
+
+  // Buscar por id_sincro
+  final existente = await db.query(
+    'fincas',
+    where: 'id_sincro = ?',
+    whereArgs: [f['id_sincro'].toString()],
+  );
+
+  if (existente.isNotEmpty) {
+
+    // UPDATE
+    await db.update(
+      'fincas',
+      datosFinca,
+      where: 'id_sincro = ?',
+      whereArgs: [f['id_sincro'].toString()],
+    );
+
+  } else {
+
+    // INSERT
+    await db.insert(
+      'fincas',
+      datosFinca,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+}
+
+
+// ==========================================
+// GUARDAR ANIMAL DESDE SERVIDOR
+// ==========================================
+
+  static Future<void> guardarAnimalServidor(
+    Map<String, dynamic> a,
+  ) async {
+
+    final db = await database;
+
+    final datosAnimal = {
+
+      'id_animal':
+          int.parse(a['id_animal'].toString()),
+
+      'id_sincro':
+          a['id_sincro'].toString(),
+
+      'identificador':
+          a['identificador'].toString(),
+
+      'tipo':
+          a['tipo'].toString(),
+
+      'raza':
+          a['raza'].toString(),
+
+      'edad':
+          int.tryParse(a['edad'].toString()) ?? 0,
+
+      'peso':
+          double.tryParse(a['peso'].toString()) ?? 0,
+
+      'sexo':
+          a['sexo'].toString(),
+
+      'proposito':
+          a['proposito'].toString(),
+
+      'estado_reproductivo':
+          a['estado_reproductivo'].toString(),
+
+      'estado':
+          a['estado'].toString(),
+
+      'precio_compra':
+          double.tryParse(
+            a['precio_compra'].toString()
+          ) ?? 0,
+
+      'precio_kilo':
+          double.tryParse(
+            a['precio_kilo'].toString()
+          ) ?? 0,
+
+      'gasto_mantenimiento':
+          double.tryParse(
+            a['gasto_mantenimiento'].toString()
+          ) ?? 0,
+
+      'fecha_compra':
+          a['fecha_compra'].toString(),
+
+      'id_finca':
+          int.parse(a['id_finca'].toString()),
+
+      'fecha_creacion':
+          a['fecha_creacion'].toString(),
+
+      'actualizado_fecha':
+          a['actualizado_fecha'].toString(),
+
+      'estado_sincronizacion': 1,
+
+      'eliminado':
+          int.tryParse(a['eliminado'].toString()) ?? 0,
+    };
+
+    // Buscar por id_sincro
+    final existente = await db.query(
+      'animales',
+      where: 'id_sincro = ?',
+      whereArgs: [a['id_sincro'].toString()],
+    );
+
+    if (existente.isNotEmpty) {
+
+      // UPDATE
+      await db.update(
+        'animales',
+        datosAnimal,
+        where: 'id_sincro = ?',
+        whereArgs: [a['id_sincro'].toString()],
+      );
+
+    } else {
+
+      // INSERT
+      await db.insert(
+        'animales',
+        datosAnimal,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   static Future<void> depurarMostrarTodo() async {

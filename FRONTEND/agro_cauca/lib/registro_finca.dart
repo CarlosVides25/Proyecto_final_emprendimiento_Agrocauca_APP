@@ -6,6 +6,10 @@ import 'package:agrocauca/componentes/Funciones.dart';
 import 'package:agrocauca/componentes/estado_sincronizacion.dart';
 import 'package:agrocauca/componentes/texto.dart';
 import 'package:agrocauca/base_datos/base_de_datos.dart';
+import 'package:uuid/uuid.dart';
+
+
+
 class Registro_finca extends StatefulWidget {
   final int usuario;
   final int idEmpresa;  
@@ -60,8 +64,9 @@ class _Registro_fincaState extends State<Registro_finca> {
   }
 
   Future<void> actualizarFincaOnline(int id_finca) async {
-    final url = Uri.parse("http://18.222.251.74/finca/guardar_finca.php");
 
+    final url = Uri.parse("http://18.222.251.74/finca/guardar_finca.php");
+    final uuid = Uuid();
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -70,6 +75,7 @@ class _Registro_fincaState extends State<Registro_finca> {
         "nombre": _nombre.text,
         "ubicacion": _ubicacion.text,
         "area": double.tryParse(_area.text) ?? 0,
+         "id_sincro": uuid.v4(), 
       }),
     );
 
@@ -211,7 +217,8 @@ class _Registro_fincaState extends State<Registro_finca> {
 
   Future<void> insertarFinca() async {
     final url = Uri.parse("http://18.222.251.74/finca/guardar_finca.php");
-
+    
+    final uuid = Uuid();
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -220,14 +227,18 @@ class _Registro_fincaState extends State<Registro_finca> {
         "ubicacion": _ubicacion.text,
         "area": double.tryParse(_area.text) ?? 0,
         "id_empresa": widget.idEmpresa,
+        "id_sincro": uuid.v4().toString(), 
 
       }),
     );  
 
     final data = json.decode(response.body);
-
+    
     if (data["success"]) {
       Funciones.mostrarMensaje(context, "Finca registrada", "La finca ha sido registrada exitosamente.", onAceptar: obtenerFincasOnline); 
+      await BaseDeDatos.guardarFincaServidor(
+        data["finca"]
+      );
       
     } else {
       Funciones.mostrarMensaje(context, "Error", "${data["error"]}"); 
